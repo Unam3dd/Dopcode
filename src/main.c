@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "opcodes.h"
-#include <stdio.h>
 
 int main(void)
 {
