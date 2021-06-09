@@ -1,22 +1,14 @@
 #include <stdio.h>
-#include "opcodes.h"
+#include "../include/decoder.h"
 
-int main(void)
+int main(int argc, char **argv)
 {
-    opcodes_info_t info = {0};
-    opcode_tables_t table = {0};
-    unsigned char opcodes[] = { 0x5, 0x45, 0x56, 0x86, 0x00 };
+    unsigned char opcodes[] = { 0x04, 0x8 };
     char buffer[0x100] = {0};
 
-    if (check_prefix(opcodes, &info))
-        printf("Prefix is present !\n");
-    
-    get_opcode_table(opcodes, &info, &table);
-
-    decode_opcodes(opcodes, buffer, sizeof(buffer), &info, &table);
+    decode_opcodes(opcodes, sizeof(opcodes) / sizeof(*opcodes), buffer, sizeof(buffer));
 
     printf("%s\n", buffer);
-
 
     return (0);
 }
