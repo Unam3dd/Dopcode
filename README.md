@@ -1,2 +1,2 @@
-# Dopcode
-Opcode decoder (Alpha) this code is very ugly
+# Dopcode is opcode decoder x86 intel
+working in progress...
