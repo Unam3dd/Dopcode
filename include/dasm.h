@@ -10,6 +10,7 @@
 // IMMEDIATES
 #define IMM8 0xffff5
 #define IMM16_32 0xffff6
+#define IMM16 0xffff7
 
 // RELATIVE
 #define REL8 0x7
@@ -28,6 +29,7 @@
 // REG
 #define EAX 0x0
 #define AL 0x0
+#define AH 0x0
 
 
 typedef struct opcode_table_t opcode_table_t;
@@ -41,6 +43,7 @@ struct opcode_table_t
     uint8_t rm_mod;
     uint8_t mul;
     uint8_t r;
+    uint8_t imm;
 };
 
 struct register_table_t

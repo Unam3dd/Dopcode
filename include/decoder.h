@@ -1,12 +1,13 @@
 #pragma once
 #include "dasm.h"
-#include "hex.h"
 #include "info.h"
-#include "utils.h"
+#include <sys/types.h>
+#include <stddef.h>
 
 #define DECODE_MNEMONIC(opcode) ((opcode << 0x2) & 0xFF) >> 0x5
 
 typedef struct write_table_mod_t write_table_mod_t;
+
 typedef struct decode_inst
 {
     opcode_table_t *table_ptr;
@@ -46,3 +47,6 @@ void write_table_mod_callback_register(unsigned char *opcodes, size_t opcodes_si
 
 // Parse Immediate
 void parse_imm(unsigned char *opcodes, size_t size_opcodes, decode_inst_t *inst);
+
+// Parse R
+void parse_r(unsigned char *opcodes, size_t size_opcodes, decode_inst_t *inst);

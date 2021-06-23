@@ -58,6 +58,16 @@ void write_table_mod_callback_displacement_32(unsigned char *opcodes, size_t opc
 }
 
 void write_table_mod_callback_register(unsigned char *opcodes, size_t opcodes_size, decode_inst_t *inst)
-{    
+{
+    if (inst->table_ptr->op[0] == RM16_32 && inst->table_ptr->op[1] == IMM8) {
+        snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x", inst->mnemonic, inst->src, *inst->dst & 0xFF);
+        return;
+    }
+
+    if (inst->table_ptr->op[0] == RM16_32 && inst->table_ptr->op[1] == IMM16_32) {
+        snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x%x%x%x", inst->mnemonic, inst->src, inst->dst[3] & 0xFF, inst->dst[2] & 0xFF, inst->dst[1] & 0xFF, inst->dst[0] & 0xFF);
+        return;
+    }
+
     snprintf(inst->buffer, inst->buffer_size, "%s %s, %s", inst->mnemonic, inst->src, inst->dst);
 }

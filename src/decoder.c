@@ -48,9 +48,11 @@ void decode_operand(unsigned char *opcodes, size_t size_opcodes, decode_inst_t *
     if (inst->table_ptr->rm_mod) {
         parse_rm_mod(opcodes, size_opcodes, inst);
     } else if (inst->table_ptr->r) {
-        // Opcodes + R
-    } else {
+        parse_r(opcodes, size_opcodes, inst);
+    } else if (inst->table_ptr->imm) {
         parse_imm(opcodes, size_opcodes, inst);
+    } else {
+        // parse other opcode
     }
 }
 
@@ -97,6 +99,30 @@ void parse_rm_mod_register_rm(unsigned char *opcodes, size_t size_opcodes, decod
 
         if (inst->info_ptr->mod_rm.r_m == 0x4 && inst->info_ptr->mod_rm.mod != 0x3)
             inst->dst = reg_table[inst->info_ptr->mod_sib.base].r32;
+
+    } else if (inst->table_ptr->op[0] == RM8 && inst->table_ptr->op[1] == IMM8) {
+
+        if (inst->info_ptr->mod_rm.r_m == 0x4 && inst->info_ptr->mod_rm.mod != 0x3)
+            inst->dst = reg_table[inst->info_ptr->mod_sib.base].r8;
+
+        inst->src = reg_table[inst->info_ptr->mod_rm.r_m].r8;
+        inst->dst = opcodes + (size_opcodes - 1);
+
+    } else if (inst->table_ptr->op[0] == RM16_32 && inst->table_ptr->op[1] == IMM16_32) {
+
+        if (inst->info_ptr->mod_rm.r_m == 0x4 && inst->info_ptr->mod_rm.mod != 0x3)
+            inst->dst = (*opcodes == 0x66) ? reg_table[inst->info_ptr->mod_sib.base].r16 : reg_table[inst->info_ptr->mod_sib.base].r32;
+
+        inst->src = (*opcodes == 0x66) ? reg_table[inst->info_ptr->mod_rm.r_m].r16 : reg_table[inst->info_ptr->mod_rm.r_m].r32;
+        inst->dst = opcodes + (size_opcodes - 4);
+        
+    } else if (inst->table_ptr->op[0] == RM16_32 && inst->table_ptr->op[1] == IMM8) {
+
+        if (inst->info_ptr->mod_rm.r_m == 0x4 && inst->info_ptr->mod_rm.mod != 0x3)
+            inst->dst = (*opcodes == 0x66) ? reg_table[inst->info_ptr->mod_sib.base].r16 : reg_table[inst->info_ptr->mod_sib.base].r32;
+
+        inst->src = (*opcodes == 0x66) ? reg_table[inst->info_ptr->mod_rm.r_m].r16  : reg_table[inst->info_ptr->mod_rm.r_m].r32;
+        inst->dst = opcodes + (size_opcodes - 1);
     }
 }
 
@@ -107,8 +133,44 @@ void parse_rm_mod_register_rm(unsigned char *opcodes, size_t size_opcodes, decod
 
 void parse_imm(unsigned char *opcodes, size_t size_opcodes, decode_inst_t *inst)
 {
-    char *reg_ptr = NULL;
-
     if ((inst->table_ptr->op[0] == 0x0) && (inst->table_ptr->op[1] == IMM8))
-        printf("%s %s, %X", inst->mnemonic, reg_table[inst->table_ptr->op[0]].r8, opcodes[size_opcodes - 1]);
+        snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x", inst->mnemonic, reg_table[inst->table_ptr->op[0]].r8, opcodes[size_opcodes - 1]);
+
+    if ((inst->table_ptr->op[0] == 0x0) && (inst->table_ptr->op[1] == IMM16_32)) {
+        if (*opcodes == 0x66)
+            snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x%x", inst->mnemonic, reg_table[inst->table_ptr->op[0]].r16, opcodes[size_opcodes - 2], opcodes[size_opcodes - 1]);
+        else
+            snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x%x%x%x", inst->mnemonic, reg_table[inst->table_ptr->op[0]].r32, opcodes[size_opcodes - 1], opcodes[size_opcodes - 2],
+            opcodes[size_opcodes - 3], opcodes[size_opcodes - 4]);
+    }
+
+    if ((inst->table_ptr->op[0] == IMM16))
+        snprintf(inst->buffer, inst->buffer_size, "%s 0x%x%x", inst->mnemonic, opcodes[size_opcodes - 1], opcodes[size_opcodes - 2]);
+    
+    if (inst->table_ptr->op[0] == IMM8)
+        snprintf(inst->buffer, inst->buffer_size, "%s 0x%x", inst->mnemonic, opcodes[size_opcodes - 1]);
+}
+
+
+/////////////////////////////
+// Parse R                 //
+/////////////////////////////
+
+void parse_r(unsigned char *opcodes, size_t size_opcodes, decode_inst_t *inst)
+{
+    if (inst->table_ptr->op[0] == R16_32)
+        snprintf(inst->buffer, inst->buffer_size, "%s %s", inst->mnemonic, (*opcodes == 0x66) ? reg_table[*opcodes + 1 & 0xF].r16 : reg_table[*opcodes & 0xF].r32);
+    
+    if (inst->table_ptr->op[0] == R8 && inst->table_ptr->op[1] == IMM8)
+        snprintf(inst->buffer, inst->buffer_size, "%s %s, %x", inst->mnemonic, reg_table[*opcodes & 0xF].r8, opcodes[size_opcodes - 1]);
+    
+    if (inst->table_ptr->op[0] == R16_32 && inst->table_ptr->op[1] == IMM16_32) {
+        
+        if (*opcodes == 0x66) {
+            snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x%x", inst->mnemonic, reg_table[*(opcodes + 1) & 0xF].r16, opcodes[size_opcodes - 1], opcodes[size_opcodes - 2]);
+            return;
+        }
+
+        snprintf(inst->buffer, inst->buffer_size, "%s %s, 0x%x%x%x%x", inst->mnemonic, reg_table[(*opcodes & 0xF) > 7 ? (*opcodes - inst->table_ptr->opcode) : (*opcodes & 0xF)].r32, opcodes[size_opcodes - 1], opcodes[size_opcodes - 2], opcodes[size_opcodes - 3], opcodes[size_opcodes - 4]);
+    }
 }
